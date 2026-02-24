@@ -15,8 +15,18 @@ You keep using macOS capture shortcuts (`Cmd+Shift+4`, `Cmd+Shift+5`), and SnapM
 ## Core Workflow
 
 1. Take a screenshot with the native macOS Screenshot Tool.
-2. Open SnapMark from the menu bar.
-3. Annotate and export.
+2. SnapMark intercepts the screenshot from the clipboard.
+3. Annotate and export only what you actually need.
+
+## Clipboard-First, No Auto-Save
+
+SnapMark works in a clipboard-first mode: it captures screenshots from your clipboard and does not automatically save every capture to disk.
+
+This helps you:
+
+- save disk space,
+- avoid clutter from one-off screenshots,
+- keep only the screenshots that are worth exporting.
 
 ## Features
 

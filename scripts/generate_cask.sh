@@ -84,7 +84,7 @@ cask "snapmark" do
   version "${VERSION}"
   sha256 "${SHA256}"
 
-  url "https://github.com/${REPO}/releases/download/v\#{version}/SnapMark-\#{version}.dmg"
+  url "https://github.com/${REPO}/releases/download/v#{version}/SnapMark-#{version}.dmg"
   name "SnapMark"
   desc "Screenshot annotation tool for macOS"
   homepage "https://github.com/${REPO}"

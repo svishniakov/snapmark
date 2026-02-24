@@ -34,7 +34,24 @@ git push origin v<version>
    - `build/SnapMark-<version>.dmg`
 3. If needed, create/edit release `v<version>` in GitHub UI.
 
-## 4) Publish to your tap
+## 4) Enable automatic tap updates (recommended)
+
+The release workflow can automatically update `svishniakov/homebrew-snapmark` after each tag release.
+
+Required one-time setup in `svishniakov/snapmark` repository:
+
+1. Create a fine-grained PAT with access to `svishniakov/homebrew-snapmark` (`Contents: Read and write`).
+2. Add repository secret:
+   - Name: `HOMEBREW_TAP_TOKEN`
+   - Value: your PAT
+
+After that, each `vX.Y.Z` release tag will:
+- build and upload `SnapMark-<version>.dmg`,
+- calculate `sha256`,
+- update `Casks/snapmark.rb` in `homebrew-snapmark`,
+- commit and push it automatically.
+
+## 5) Manual tap update (fallback)
 
 Tap repository naming convention:
 - `homebrew-<tapname>` (for example: `homebrew-apps`)
@@ -47,7 +64,7 @@ In tap repository:
    - to tap repo: `Casks/snapmark.rb`
 3. Commit and push.
 
-## 5) Install check
+## 6) Install check
 
 ```bash
 brew tap svishniakov/snapmark

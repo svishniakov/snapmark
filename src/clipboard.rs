@@ -7,6 +7,7 @@ use std::{
     collections::hash_map::DefaultHasher,
     env, fs,
     hash::Hasher,
+    io,
     path::{Path, PathBuf},
     process::Command,
     time::{Instant, SystemTime},
@@ -89,6 +90,11 @@ fn watcher_loop(tx: Sender<WatcherEvent>, stop: Arc<AtomicBool>, interval_ms: u6
                     }
                 }
                 Err(err) => {
+                    if is_permission_denied_error(&err) {
+                        state.disable_filesystem_scan();
+                        last_error = None;
+                        continue;
+                    }
                     let message = format!(
                         "screenshot detected but failed to read {}: {err:#}",
                         path.display()
@@ -103,6 +109,11 @@ fn watcher_loop(tx: Sender<WatcherEvent>, stop: Arc<AtomicBool>, interval_ms: u6
                 last_error = None;
             }
             Err(err) => {
+                if is_permission_denied_error(&err) {
+                    state.disable_filesystem_scan();
+                    last_error = None;
+                    continue;
+                }
                 let message = format!("screenshot watcher error: {err:#}");
                 if last_error.as_deref() != Some(message.as_str()) {
                     let _ = tx.send(WatcherEvent::Error(message.clone()));
@@ -190,6 +201,7 @@ struct ScreenshotPollState {
     last_emitted_fingerprint: Option<u64>,
     screencapture_running: bool,
     screenshot_signal_until: Option<Instant>,
+    filesystem_scan_enabled: bool,
 }
 
 impl ScreenshotPollState {
@@ -203,7 +215,12 @@ impl ScreenshotPollState {
             last_emitted_fingerprint: None,
             screencapture_running: false,
             screenshot_signal_until: None,
+            filesystem_scan_enabled: true,
         }
+    }
+
+    fn disable_filesystem_scan(&mut self) {
+        self.filesystem_scan_enabled = false;
     }
 
     fn observe_screencapture_signal(&mut self) {
@@ -238,6 +255,9 @@ impl ScreenshotPollState {
     }
 
     fn poll_new_screenshot_path(&mut self) -> Result<Option<PathBuf>> {
+        if !self.filesystem_scan_enabled {
+            return Ok(None);
+        }
         let allow_loose_match = self.is_screenshot_signal_active();
         let Some((modified, path)) =
             latest_screenshot_file(&self.screenshot_dir, allow_loose_match)?
@@ -433,4 +453,20 @@ fn is_screencapture_running() -> bool {
         .status()
         .map(|status| status.success())
         .unwrap_or(false)
+}
+
+fn is_permission_denied_error(err: &anyhow::Error) -> bool {
+    if err.chain().any(|cause| {
+        cause
+            .downcast_ref::<io::Error>()
+            .map(|io_err| io_err.kind() == io::ErrorKind::PermissionDenied)
+            .unwrap_or(false)
+    }) {
+        return true;
+    }
+
+    let message = format!("{err:#}");
+    message.contains("Operation not permitted")
+        || message.contains("Permission denied")
+        || message.contains("os error 1")
 }

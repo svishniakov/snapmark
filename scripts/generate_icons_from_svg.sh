@@ -6,6 +6,7 @@ SRC_ICON="${ROOT_DIR}/assets/snapmark-icon.svg"
 OUT_ICON="${ROOT_DIR}/assets/icon.png"
 OUT_STATUS_ICON="${ROOT_DIR}/assets/status_icon_template.png"
 OUT_ICNS="${ROOT_DIR}/assets/icon.icns"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 if [[ ! -f "${SRC_ICON}" ]]; then
   echo "Missing source SVG: ${SRC_ICON}" >&2
@@ -29,7 +30,7 @@ RAW_64="${TMP_DIR}/raw_64.png"
 rsvg-convert -w 1024 -h 1024 "${SRC_ICON}" -o "${RAW_1024}"
 rsvg-convert -w 64 -h 64 "${SRC_ICON}" -o "${RAW_64}"
 
-python3 - "${RAW_1024}" "${RAW_64}" "${OUT_ICON}" "${OUT_STATUS_ICON}" "${OUT_ICNS}" <<'PY'
+"${PYTHON_BIN}" - "${RAW_1024}" "${RAW_64}" "${OUT_ICON}" "${OUT_STATUS_ICON}" "${OUT_ICNS}" <<'PY'
 from PIL import Image, ImageDraw, ImageFilter
 import sys
 

@@ -26,7 +26,10 @@ jobs:
       - name: Install icon build dependencies
         run: |
           brew install librsvg
-          python3 -m pip install --upgrade pip pillow
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install pillow
 
       - name: Resolve version
         id: vars
@@ -39,6 +42,8 @@ jobs:
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Build DMG
+        env:
+          PYTHON_BIN: ${{ github.workspace }}/.venv/bin/python
         run: ./scripts/build_release_dmg.sh "${{ steps.vars.outputs.version }}"
 
       - name: Upload release asset

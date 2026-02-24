@@ -14,7 +14,7 @@ Usage:
 
 Examples:
   ./scripts/build_release_dmg.sh
-  ./scripts/build_release_dmg.sh 0.1.0
+  ./scripts/build_release_dmg.sh 1.0.0
 EOF
 }
 

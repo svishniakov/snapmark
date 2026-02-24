@@ -14,8 +14,8 @@ Usage:
   ./scripts/generate_cask.sh --repo OWNER/REPO [--version X.Y.Z] [--dmg PATH | --sha256 HASH] [--output PATH]
 
 Examples:
-  ./scripts/build_release_dmg.sh 0.1.0
-  ./scripts/generate_cask.sh --repo yourname/snapmark --dmg build/SnapMark-0.1.0.dmg
+  ./scripts/build_release_dmg.sh 1.0.0
+  ./scripts/generate_cask.sh --repo yourname/snapmark --dmg build/SnapMark-1.0.0.dmg
 
 Notes:
   - If --dmg is provided, SHA256 is calculated automatically.

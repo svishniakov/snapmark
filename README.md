@@ -1,83 +1,50 @@
 # SnapMark
 
-SnapMark is a macOS screenshot annotation tool built with Rust + egui.
+SnapMark is a fast annotation layer for screenshots on macOS.
 
-## Implemented
+It is explicitly designed as an extension of the native macOS Screenshot Tool, not a replacement.  
+You keep using macOS capture shortcuts (`Cmd+Shift+4`, `Cmd+Shift+5`), and SnapMark picks up the result so you can mark it up immediately.
 
-- Menu-bar oriented app architecture with dedicated platform module (`src/platform/*`)
-- Native macOS status bar menu (`Open Editor`, `Quit SnapMark`)
-- Screenshot watcher loop (300ms polling) with automatic detection of new macOS screenshots
-- Editor layout: toolbar + canvas + action bar
-- Premium dark/glass theme tokens + styled controls
-- Hidden-by-default editor window for menu-bar workflow
-- Tools: Select, Arrow, Arrow+Text, Text, Rectangle, Ellipse
-- Palette + native macOS `NSColorPanel` (`+`) with fallback picker + stroke presets + text size presets
-- Selection, move, resize handles, delete
-- Undo / Redo snapshot history
-- Zoom in / out / fit-to-view
-- Flatten (tiny-skia) + text rendering pass (imageproc)
-- Copy to clipboard and Save (PNG / JPEG)
-- Unsaved-close confirmation, replace-image confirmation dialogs
-- Hybrid visual effects mode (`NSVisualEffectView`), with automatic fallback to pure egui (`EguiOnly`) on failure
-- App metadata files (`Info.plist`, `build.rs`, icon placeholder)
+## Why SnapMark
 
-## Build
+- Built for quick communication: arrows, text, and shapes in seconds
+- Lives in the menu bar and stays out of your way
+- Keeps the workflow native to macOS
+- Optimized for sharing: copy to clipboard or save to file
 
-Requires Rust toolchain and Cargo installed.
+## Core Workflow
+
+1. Take a screenshot with the native macOS Screenshot Tool.
+2. Open SnapMark from the menu bar.
+3. Annotate and export.
+
+## Features
+
+- Tools: Select, Arrow, Arrow with Text, Text, Rectangle, Ellipse
+- Fixed high-contrast annotation palette
+- Stroke size and text size controls
+- Undo/Redo
+- Copy result directly to clipboard
+- Save as PNG or JPEG
+
+## Install (Homebrew)
 
 ```bash
-cargo check
-cargo test
-cargo run
+brew tap svishniakov/snapmark
+brew install --cask snapmark
 ```
 
-Universal macOS `.app` build:
+## Manual Install
+
+Download the latest `.dmg` from Releases and move `SnapMark.app` to Applications.
+
+## Privacy
+
+SnapMark works locally on your Mac and does not require a cloud account.
+
+## For Contributors
 
 ```bash
+cargo test
 ./scripts/build_macos_app.sh
 ```
-
-Output bundle:
-
-- `build/SnapMark.app`
-
-Release DMG build:
-
-```bash
-./scripts/build_release_dmg.sh
-```
-
-Output artifact:
-
-- `build/SnapMark-<version>.dmg`
-
-Homebrew cask generation for your own tap:
-
-```bash
-./scripts/generate_cask.sh --repo <github-user-or-org>/snapmark --dmg build/SnapMark-<version>.dmg
-```
-
-Detailed steps:
-
-- `docs/HOMEBREW_CASK_RELEASE.md`
-
-Implementation tracking:
-
-- `docs/IMPLEMENTATION_STATUS.md`
-
-## Project structure
-
-Matches PRD target layout:
-
-- `src/main.rs`
-- `src/app.rs`
-- `src/state.rs`
-- `src/clipboard.rs`
-- `src/canvas.rs`
-- `src/toolbar.rs`
-- `src/action_bar.rs`
-- `src/flatten.rs`
-- `src/annotation.rs`
-- `src/history.rs`
-- `src/platform/mod.rs`
-- `src/platform/macos.rs`

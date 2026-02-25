@@ -85,7 +85,7 @@ fn empty_canvas(ui: &mut Ui) {
     painter.text(
         rect.center(),
         Align2::CENTER_CENTER,
-        "Вставьте изображение (Cmd+V)",
+        "Paste an image (Cmd+V)",
         FontId::proportional(19.0),
         theme.text.secondary,
     );

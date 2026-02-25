@@ -71,6 +71,11 @@ pub fn show_toolbar(ui: &mut Ui, state: &mut EditorState, width_class: WidthClas
 
         if plan.show_stroke_inline {
             group_separator(ui, &theme);
+            ui.label(
+                RichText::new("Line thickness")
+                    .color(theme.text.muted)
+                    .size(12.0),
+            );
             stroke_button(ui, state, StrokeWidth::Thin, "S");
             stroke_button(ui, state, StrokeWidth::Medium, "M");
             stroke_button(ui, state, StrokeWidth::Thick, "L");
@@ -110,7 +115,11 @@ pub fn show_toolbar(ui: &mut Ui, state: &mut EditorState, width_class: WidthClas
 
                     if !plan.show_stroke_inline {
                         ui.separator();
-                        ui.label(RichText::new("Stroke").color(theme.text.muted).size(12.0));
+                        ui.label(
+                            RichText::new("Line thickness")
+                                .color(theme.text.muted)
+                                .size(12.0),
+                        );
                         ui.horizontal(|ui| {
                             stroke_button(ui, state, StrokeWidth::Thin, "S");
                             stroke_button(ui, state, StrokeWidth::Medium, "M");
@@ -279,7 +288,15 @@ fn draw_tool_icon(ui: &Ui, rect: Rect, tool: Tool, selected: bool) {
 
 fn stroke_button(ui: &mut Ui, state: &mut EditorState, stroke: StrokeWidth, label: &str) {
     let theme = theme::premium_dark_theme();
-    if ui_controls::segmented(ui, &theme, label, state.active_stroke == stroke).clicked() {
+    let hint = match stroke {
+        StrokeWidth::Thin => "Line thickness: Small",
+        StrokeWidth::Medium => "Line thickness: Medium",
+        StrokeWidth::Thick => "Line thickness: Large",
+    };
+    if ui_controls::segmented(ui, &theme, label, state.active_stroke == stroke)
+        .on_hover_text(hint)
+        .clicked()
+    {
         state.set_stroke(stroke);
     }
 }

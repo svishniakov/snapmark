@@ -48,6 +48,19 @@ brew install --cask snapmark
 
 Download the latest `.dmg` from Releases and move `SnapMark.app` to Applications.
 
+## Troubleshooting (Gatekeeper)
+
+If macOS shows `"SnapMark.app" Not Opened` / `Apple could not verify ...`:
+
+1. Right-click `SnapMark.app` in Applications and choose `Open`, then confirm.
+2. If needed, remove quarantine manually:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/SnapMark.app
+```
+
+This is a temporary workaround for unsigned/not-notarized builds.
+
 ## Privacy
 
 SnapMark works locally on your Mac and does not require a cloud account.

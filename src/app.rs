@@ -522,12 +522,7 @@ impl App for SnapMarkApp {
             .frame(ui_controls::toolbar_frame(&self.theme))
             .show(ctx, |ui| {
                 let width_class = self.theme.width_class(ui.available_width());
-                let hairline = 1.0 / ui.ctx().pixels_per_point();
-                let separator = egui::Stroke::new(hairline, self.theme.surfaces.stroke_soft);
                 toolbar::show_toolbar(ui, &mut self.state, width_class);
-                let rect = ui.max_rect();
-                ui.painter()
-                    .hline(rect.x_range(), rect.bottom() - hairline * 0.5, separator);
             });
 
         egui::CentralPanel::default()

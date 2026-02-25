@@ -23,6 +23,7 @@ pub struct SnapMarkApp {
     ui_flags: AppUiFlags,
     open_editor_signal: Arc<AtomicBool>,
     hide_dock_signal: Arc<AtomicBool>,
+    show_dock_signal: Arc<AtomicBool>,
     status_bar: Option<platform::StatusBarHandle>,
     theme: theme::AppTheme,
     allow_app_exit: bool,
@@ -32,6 +33,7 @@ impl SnapMarkApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let open_editor_signal = Arc::new(AtomicBool::new(false));
         let hide_dock_signal = Arc::new(AtomicBool::new(false));
+        let show_dock_signal = Arc::new(AtomicBool::new(false));
         let theme = theme::premium_dark_theme();
         theme::apply_theme(&cc.egui_ctx, &theme);
 
@@ -54,6 +56,7 @@ impl SnapMarkApp {
             ui_flags: AppUiFlags::default(),
             open_editor_signal,
             hide_dock_signal,
+            show_dock_signal,
             status_bar: None,
             theme,
             allow_app_exit: false,
@@ -66,12 +69,17 @@ impl SnapMarkApp {
         }
         let open_signal = Arc::clone(&self.open_editor_signal);
         let hide_dock_signal = Arc::clone(&self.hide_dock_signal);
+        let show_dock_signal = Arc::clone(&self.show_dock_signal);
         self.status_bar = platform::setup_status_bar(
+            self.state.settings.dock_icon_visible,
             move || {
                 open_signal.store(true, Ordering::Relaxed);
             },
             move || {
                 hide_dock_signal.store(true, Ordering::Relaxed);
+            },
+            move || {
+                show_dock_signal.store(true, Ordering::Relaxed);
             },
         );
     }
@@ -157,6 +165,17 @@ impl SnapMarkApp {
 
         self.state.set_dock_icon_visible(false);
         platform::set_dock_icon_visible(false);
+        self.status_bar = None;
+    }
+
+    fn process_show_dock_signal(&mut self) {
+        if !self.show_dock_signal.swap(false, Ordering::Relaxed) {
+            return;
+        }
+
+        self.state.set_dock_icon_visible(true);
+        platform::set_dock_icon_visible(true);
+        self.status_bar = None;
     }
 
     fn load_image_into_editor(
@@ -442,6 +461,8 @@ impl App for SnapMarkApp {
         self.process_watcher_events(ctx);
         self.process_open_editor_signal(ctx);
         self.process_hide_dock_signal();
+        self.process_show_dock_signal();
+        self.ensure_status_bar();
         self.handle_shortcuts(ctx, frame);
         self.handle_window_close_request(ctx);
         self.sync_visual_effects();

@@ -1,12 +1,14 @@
+use std::process::Command;
 use std::sync::Arc;
 
 use anyhow::Result;
 use eframe::Frame;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
-use objc2::{declare_class, msg_send_id, mutability, sel, ClassType, DeclaredClass};
+use objc2::{declare_class, msg_send, msg_send_id, mutability, sel, ClassType, DeclaredClass};
 use objc2_app_kit::{
-    NSAlert, NSApplication, NSApplicationActivationPolicy, NSImage, NSMenu, NSMenuItem,
+    NSAlert, NSAlertFirstButtonReturn, NSApplication, NSApplicationActivationPolicy, NSImage,
+    NSMenu, NSMenuItem,
     NSPasteboard, NSScreen, NSSquareStatusItemLength, NSStatusBar, NSStatusItem,
 };
 use objc2_foundation::{MainThreadMarker, NSObject, NSObjectProtocol, NSSize, NSString};
@@ -19,6 +21,7 @@ mod vibrancy_macos;
 struct StatusMenuIvars {
     on_open_editor: Arc<dyn Fn() + Send + Sync + 'static>,
     on_hide_from_dock: Arc<dyn Fn() + Send + Sync + 'static>,
+    on_show_in_dock: Arc<dyn Fn() + Send + Sync + 'static>,
 }
 
 declare_class!(
@@ -51,6 +54,39 @@ declare_class!(
         fn hide_from_dock(&self, _sender: Option<&AnyObject>) {
             (self.ivars().on_hide_from_dock)();
         }
+
+        #[method(showInDock:)]
+        fn show_in_dock(&self, _sender: Option<&AnyObject>) {
+            (self.ivars().on_show_in_dock)();
+        }
+
+        #[method(showAbout:)]
+        fn show_about(&self, _sender: Option<&AnyObject>) {
+            if let Some(mtm) = MainThreadMarker::new() {
+                let alert = unsafe { NSAlert::new(mtm) };
+                let title = NSString::from_str("About SnapMark");
+                let informative = NSString::from_str(&format!(
+                    "Developer: svishniakov\nGitHub: https://github.com/svishniakov/snapmark\nVersion: {}",
+                    env!("CARGO_PKG_VERSION")
+                ));
+                let open_title = NSString::from_str("Open GitHub");
+                let ok_title = NSString::from_str("OK");
+                unsafe {
+                    alert.setMessageText(&title);
+                    alert.setInformativeText(&informative);
+                    let _: *mut AnyObject =
+                        msg_send![&alert, addButtonWithTitle: open_title.as_ref()];
+                    let _: *mut AnyObject =
+                        msg_send![&alert, addButtonWithTitle: ok_title.as_ref()];
+                }
+                let response = unsafe { alert.runModal() };
+                if response == NSAlertFirstButtonReturn {
+                    let _ = Command::new("/usr/bin/open")
+                        .arg("https://github.com/svishniakov/snapmark")
+                        .status();
+                }
+            }
+        }
     }
 );
 
@@ -59,11 +95,13 @@ impl StatusMenuTarget {
         mtm: MainThreadMarker,
         on_open_editor: Arc<dyn Fn() + Send + Sync + 'static>,
         on_hide_from_dock: Arc<dyn Fn() + Send + Sync + 'static>,
+        on_show_in_dock: Arc<dyn Fn() + Send + Sync + 'static>,
     ) -> Retained<Self> {
         let this = mtm.alloc();
         let this = this.set_ivars(StatusMenuIvars {
             on_open_editor,
             on_hide_from_dock,
+            on_show_in_dock,
         });
         unsafe { msg_send_id![super(this), init] }
     }
@@ -77,8 +115,10 @@ pub struct StatusBarHandle {
 }
 
 pub fn setup_status_bar(
+    dock_icon_visible: bool,
     on_open_editor: impl Fn() + Send + Sync + 'static,
     on_hide_from_dock: impl Fn() + Send + Sync + 'static,
+    on_show_in_dock: impl Fn() + Send + Sync + 'static,
 ) -> Option<StatusBarHandle> {
     let mtm = MainThreadMarker::new()?;
 
@@ -88,11 +128,22 @@ pub fn setup_status_bar(
     let menu = NSMenu::new(mtm);
     let open_callback: Arc<dyn Fn() + Send + Sync + 'static> = Arc::new(on_open_editor);
     let hide_callback: Arc<dyn Fn() + Send + Sync + 'static> = Arc::new(on_hide_from_dock);
-    let target = StatusMenuTarget::new(mtm, open_callback, hide_callback);
+    let show_callback: Arc<dyn Fn() + Send + Sync + 'static> = Arc::new(on_show_in_dock);
+    let target = StatusMenuTarget::new(mtm, open_callback, hide_callback, show_callback);
     let target_obj: &AnyObject = target.as_ref();
 
     let open_title = NSString::from_str("Open Editor");
-    let hide_dock_title = NSString::from_str("Hide from Dock");
+    let dock_toggle_title = if dock_icon_visible {
+        NSString::from_str("Hide from Dock")
+    } else {
+        NSString::from_str("Show in Dock")
+    };
+    let dock_toggle_action = if dock_icon_visible {
+        Some(sel!(hideFromDock:))
+    } else {
+        Some(sel!(showInDock:))
+    };
+    let about_title = NSString::from_str("About SnapMark");
     let quit_title = NSString::from_str("Quit SnapMark");
     let empty = NSString::from_str("");
 
@@ -101,14 +152,19 @@ pub fn setup_status_bar(
     };
     unsafe { open_item.setTarget(Some(target_obj)) };
 
-    let hide_dock_item = unsafe {
+    let dock_toggle_item = unsafe {
         menu.addItemWithTitle_action_keyEquivalent(
-            &hide_dock_title,
-            Some(sel!(hideFromDock:)),
+            &dock_toggle_title,
+            dock_toggle_action,
             &empty,
         )
     };
-    unsafe { hide_dock_item.setTarget(Some(target_obj)) };
+    unsafe { dock_toggle_item.setTarget(Some(target_obj)) };
+
+    let about_item = unsafe {
+        menu.addItemWithTitle_action_keyEquivalent(&about_title, Some(sel!(showAbout:)), &empty)
+    };
+    unsafe { about_item.setTarget(Some(target_obj)) };
 
     let separator = NSMenuItem::separatorItem(mtm);
     menu.addItem(&separator);

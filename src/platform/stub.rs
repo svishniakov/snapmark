@@ -4,8 +4,10 @@ use eframe::Frame;
 pub struct StatusBarHandle;
 
 pub fn setup_status_bar(
+    _dock_icon_visible: bool,
     _on_open_editor: impl Fn() + Send + Sync + 'static,
     _on_hide_from_dock: impl Fn() + Send + Sync + 'static,
+    _on_show_in_dock: impl Fn() + Send + Sync + 'static,
 ) -> Option<StatusBarHandle> {
     None
 }

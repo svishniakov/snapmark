@@ -20,6 +20,7 @@ use image::{DynamicImage, RgbaImage};
 use crate::platform;
 
 const SCREENSHOT_SIGNAL_GRACE: Duration = Duration::from_secs(2);
+const FILESYSTEM_SCAN_ENV: &str = "SNAPMARK_ENABLE_FILESYSTEM_SCAN";
 
 #[derive(Clone)]
 pub struct ClipboardPayload {
@@ -195,7 +196,7 @@ pub fn write_png_to_clipboard(png_bytes: &[u8]) -> Result<()> {
 }
 
 struct ScreenshotPollState {
-    screenshot_dir: PathBuf,
+    screenshot_dir: Option<PathBuf>,
     last_seen: Option<(SystemTime, PathBuf)>,
     last_clipboard_change_count: Option<i64>,
     last_emitted_fingerprint: Option<u64>,
@@ -206,8 +207,15 @@ struct ScreenshotPollState {
 
 impl ScreenshotPollState {
     fn new() -> Self {
-        let screenshot_dir = resolve_screenshot_dir();
-        let last_seen = latest_screenshot_file(&screenshot_dir, true).ok().flatten();
+        let filesystem_scan_enabled = should_enable_filesystem_scan();
+        let screenshot_dir = if filesystem_scan_enabled {
+            Some(resolve_screenshot_dir())
+        } else {
+            None
+        };
+        let last_seen = screenshot_dir
+            .as_ref()
+            .and_then(|dir| latest_screenshot_file(dir, true).ok().flatten());
         Self {
             screenshot_dir,
             last_seen,
@@ -215,12 +223,13 @@ impl ScreenshotPollState {
             last_emitted_fingerprint: None,
             screencapture_running: false,
             screenshot_signal_until: None,
-            filesystem_scan_enabled: true,
+            filesystem_scan_enabled,
         }
     }
 
     fn disable_filesystem_scan(&mut self) {
         self.filesystem_scan_enabled = false;
+        self.screenshot_dir = None;
     }
 
     fn observe_screencapture_signal(&mut self) {
@@ -258,9 +267,12 @@ impl ScreenshotPollState {
         if !self.filesystem_scan_enabled {
             return Ok(None);
         }
+        let Some(screenshot_dir) = self.screenshot_dir.as_ref() else {
+            return Ok(None);
+        };
         let allow_loose_match = self.is_screenshot_signal_active();
         let Some((modified, path)) =
-            latest_screenshot_file(&self.screenshot_dir, allow_loose_match)?
+            latest_screenshot_file(screenshot_dir, allow_loose_match)?
         else {
             return Ok(None);
         };
@@ -353,6 +365,18 @@ fn resolve_screenshot_dir() -> PathBuf {
     }
 
     PathBuf::from(".")
+}
+
+fn should_enable_filesystem_scan() -> bool {
+    env::var(FILESYSTEM_SCAN_ENV)
+        .ok()
+        .map(|raw| {
+            matches!(
+                raw.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
 }
 
 fn latest_screenshot_file(
